@@ -1,0 +1,2362 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>往返辅助排查系统</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Element Plus CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/element-plus/dist/index.css" rel="stylesheet">
+    <!-- Custom CSS -->
+    <style>
+        body {
+            background-color: #f5f7fa;
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 0;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+        }
+        .search-panel {
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+        .result-panel {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+        .app-section {
+            margin-bottom: 25px;
+            border: 1px solid #e4e7ed;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .app-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 20px;
+            font-weight: 600;
+            font-size: 16px;
+        }
+        .category-group {
+            margin: 15px;
+            padding: 15px;
+            background: #f9fafb;
+            border-radius: 6px;
+            border-left: 4px solid #667eea;
+        }
+        .category-title {
+            font-weight: 600;
+            color: #303133;
+            margin-bottom: 10px;
+            font-size: 15px;
+        }
+        .log-item {
+            background: white;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 6px;
+            border: 1px solid #dcdfe6;
+            font-size: 13px;
+            line-height: 1.6;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .log-header-bar {
+            display: flex;
+            align-items: center;
+            padding: 6px 10px;
+            background: #f5f7fa;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            user-select: none;
+        }
+        .log-header-bar:hover {
+            background: #ecf0f5;
+        }
+        .log-time {
+            color: #909399;
+            font-size: 12px;
+            margin-bottom: 5px;
+        }
+        .log-content {
+            color: #303133;
+            word-break: break-all;
+            white-space: pre-wrap;
+            max-height: 350px;
+            overflow-y: auto;
+        }
+        .log-content-json {
+            background: #f5f7fa;
+            padding: 10px;
+            border-radius: 4px;
+            max-height: 350px;
+            overflow-y: auto;
+        }
+        .log-raw-textarea {
+            width: 100%;
+            height: 512px;
+            padding: 10px;
+            border: 1px solid #dcdfe6;
+            border-radius: 4px;
+            background: #f5f7fa;
+            font-family: 'Courier New', Consolas, monospace;
+            font-size: 13px;
+            line-height: 1.5;
+            color: #303133;
+            resize: none;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            outline: none;
+        }
+        .log-raw-textarea pre {
+            margin: 0;
+            padding: 0;
+            font-family: inherit;
+            font-size: inherit;
+            line-height: inherit;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .log-raw-textarea:focus {
+            border-color: #dcdfe6;
+            box-shadow: none;
+        }
+        .traceid-link {
+            color: #409eff;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+        .traceid-link:hover {
+            color: #66b1ff;
+        }
+        .traceid-header {
+            background: #ecf5ff;
+            padding: 8px 12px;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            border-left: 3px solid #409eff;
+        }
+        .empty-result {
+            text-align: center;
+            padding: 40px;
+            color: #909399;
+        }
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255,255,255,0.8);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+        .trip-tag {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+        .trip-tag.departure {
+            background: #e1f3d8;
+            color: #67c23a;
+        }
+        .trip-tag.return {
+            background: #fde2e2;
+            color: #f56c6c;
+        }
+        .stats-bar {
+            background: #f0f2f5;
+            padding: 10px 15px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+        .app-header:hover {
+            background: linear-gradient(135deg, #5a6fd6 0%, #6a4190 100%);
+        }
+        .collapse-icon {
+            display: inline-block;
+            transition: transform 0.3s;
+        }
+        .time-range-btn.active {
+            background-color: #409eff;
+            color: white;
+            border-color: #409eff;
+        }
+        .log-category-info {
+            margin-bottom: 8px;
+        }
+        .category-tag {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 3px;
+            font-size: 12px;
+            margin-right: 6px;
+            font-weight: 500;
+        }
+        .category-major {
+            background: #e8f4ff;
+            color: #409eff;
+            border: 1px solid #b3d8ff;
+        }
+        .category-sub {
+            background: #f0f9eb;
+            color: #67c23a;
+            border: 1px solid #c2e7b0;
+        }
+        .global-filter-bar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+            padding: 10px 14px;
+            background: #fff;
+            border: 1px solid #e4e7ed;
+            border-radius: 8px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        .av-filter-input {
+            flex: 1;
+        }
+        .av-filter-input .el-input__wrapper {
+            border-radius: 6px;
+            box-shadow: 0 0 0 1px #dcdfe6 inset;
+            transition: box-shadow 0.2s;
+        }
+        .av-filter-input .el-input__wrapper:hover {
+            box-shadow: 0 0 0 1px #c0c4cc inset;
+        }
+        .av-filter-input .el-input__wrapper.is-focus {
+            box-shadow: 0 0 0 1px #667eea inset !important;
+        }
+        .av-filter-count {
+            font-size: 12px;
+            color: #909399;
+            white-space: nowrap;
+            padding: 4px 10px;
+            background: #f5f7fa;
+            border-radius: 4px;
+        }
+        .log-raw-textarea mark,
+        .log-content mark,
+        .log-content-json mark {
+            background: linear-gradient(120deg, #ffeaa7 0%, #fdcb6e 100%);
+            color: inherit;
+            padding: 1px 3px;
+            border-radius: 3px;
+            box-shadow: 0 0 0 1px rgba(253, 203, 110, 0.4);
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <!-- Header -->
+        <div class="header">
+            <div class="container">
+                <h1>✈ 往返辅助排查系统</h1>
+            </div>
+        </div>
+
+        <div class="container">
+            <!-- Search Panel -->
+            <div class="search-panel">
+                <el-form :model="searchForm" label-width="100px" size="large" :disabled="loading">
+                    <el-row :gutter="20">
+                        <el-col :span="16">
+                            <el-form-item label="ID类型">
+                                <el-radio-group v-model="searchForm.idType">
+                                    <el-radio value="traceid">traceid</el-radio>
+                                    <el-radio value="tempSerialNo">临时单号</el-radio>
+                                    <el-radio value="orderNo">订单号</el-radio>
+                                    <el-radio value="tag">tag</el-radio>
+                                    <el-radio value="userInfo">用户信息</el-radio>
+                                </el-radio-group>
+                            </el-form-item>
+                        </el-col>
+                    </el-row>
+                    <el-row :gutter="20">
+                        <el-col :span="16">
+                            <el-form-item label="ID">
+                                <el-input v-model="searchForm.idValue" :placeholder="getIdPlaceholder()">
+                                    <template #append>
+                                        <el-button @click="copyIdValue" title="复制ID" :disabled="loading">
+                                            📋
+                                        </el-button>
+                                    </template>
+                                </el-input>
+                            </el-form-item>
+                        </el-col>
+                    </el-row>
+                    <el-row :gutter="20">
+                        <el-col :span="12">
+                            <el-form-item label="日志时间范围">
+                                <el-date-picker
+                                    v-model="searchForm.timeRange"
+                                    type="datetimerange"
+                                    range-separator="至"
+                                    start-placeholder="开始时间"
+                                    end-placeholder="结束时间"
+                                    value-format="YYYY-MM-DD HH:mm:ss"
+                                    style="width:100%">
+                                </el-date-picker>
+                                <div class="mt-2">
+                                    <el-button-group>
+                                        <el-button size="small" :disabled="loading" :class="{'time-range-btn': true, 'active': selectedTimeRange === 'quick_30'}" @click="setQuickTimeRange(30)">最近30分</el-button>
+                                        <el-button size="small" :disabled="loading" :class="{'time-range-btn': true, 'active': selectedTimeRange === 'quick_60'}" @click="setQuickTimeRange(60)">最近1小时</el-button>
+                                        <el-button size="small" :disabled="loading" :class="{'time-range-btn': true, 'active': selectedTimeRange === 'quick_240'}" @click="setQuickTimeRange(240)">最近4小时</el-button>
+                                        <el-button size="small" :disabled="loading" :class="{'time-range-btn': true, 'active': selectedTimeRange === 'quick_480'}" @click="setQuickTimeRange(480)">最近8小时</el-button>
+                                        <el-button size="small" :disabled="loading" :class="{'time-range-btn': true, 'active': selectedTimeRange === 'today'}" @click="setTodayRange()">今天</el-button>
+                                        <el-button size="small" :disabled="loading" :class="{'time-range-btn': true, 'active': selectedTimeRange === 'yesterday'}" @click="setYesterdayRange()">昨天</el-button>
+                                    </el-button-group>
+                                </div>
+                            </el-form-item>
+                        </el-col>
+                        <el-col :span="12">
+                            <el-form-item>
+                                <el-button type="primary" @click="handleSearch" :loading="loading" size="large">
+                                    查询
+                                </el-button>
+                                <el-button @click="resetForm" size="large" :disabled="loading">重置</el-button>
+                            </el-form-item>
+                        </el-col>
+                    </el-row>
+                </el-form>
+            </div>
+
+            <!-- Result Panel -->
+            <div class="result-panel" v-if="searched">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h3 class="mb-0">
+                        查询结果
+                        <!-- 加载状态 indicator -->
+                        <span v-if="loading" class="ms-2">
+                            <span class="spinner-border spinner-border-sm text-primary" role="status"></span>
+                            <span class="text-muted ms-1" style="font-size: 14px;">{{ loadingText || '正在查询...' }}</span>
+                        </span>
+                    </h3>
+                    <el-button v-if="results.length > 0 && !loading" size="small" @click="exportResults">
+                        导出结果
+                    </el-button>
+                </div>
+                <hr>
+                
+                <!-- 天网日志跳转链接（仅traceid查询时显示） -->
+                <div v-if="searchForm.idType === 'traceid' && searchForm.idValue && searchForm.idValue.trim()" style="margin-bottom: 15px; padding: 10px 15px; background: #ecf5ff; border-radius: 6px; border-left: 3px solid #409eff;">
+                    <a :href="getSkyNetUrl()" target="_blank" style="color: #409eff; font-size: 14px; text-decoration: none;">
+                        🔗 跳转天网日志查看
+                    </a>
+                    <span style="color: #909399; font-size: 12px; margin-left: 8px;">（在新标签页打开天网日志平台，查看完整日志）</span>
+                </div>
+
+                <!-- 全局日志搜索 -->
+                <div v-if="results.length > 0" class="global-filter-bar">
+                    <el-input v-model="logFilterKeywords" placeholder="输入关键词搜索所有日志内容" clearable size="small" class="av-filter-input" @clear="clearLogFilter" :disabled="loading">
+                        <template #prefix>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#909399" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                        </template>
+                    </el-input>
+                    <span v-if="logFilterKeywords.trim()" class="av-filter-count">匹配 {{ globalFilterStats.matched }} / {{ globalFilterStats.total }} 条</span>
+                </div>
+
+                <!-- No Results -->
+                <div v-if="results.length === 0 && !loading" class="empty-result">
+                    <el-empty description="暂无查询结果"></el-empty>
+                </div>
+                <div v-if="results.length > 0 && filteredResults.length === 0 && logFilterKeywords.trim() && !loading" class="empty-result">
+                    <el-empty description="无匹配日志"></el-empty>
+                </div>
+
+                <!-- Results -->
+                <div v-for="app in filteredResults" :key="app._appIndex" class="app-section">
+                    <div class="app-header" style="cursor: pointer;" @click="toggleCollapse(app._appIndex)">
+                        <span>
+                            {{ app.appName }}
+                            <span style="font-size: 12px; margin-left: 8px;">
+                                {{ collapsedApps[app._appIndex] === false ? '▼' : '▶' }}
+                            </span>
+                        </span>
+                        <span class="float-end" style="font-size: 14px; font-weight: normal;">
+                            共 {{ app.totalLogs }} 条日志
+                        </span>
+                    </div>
+                    <div v-show="collapsedApps[app._appIndex] === false" class="p-3">
+                        <div v-for="group in app.groups" :key="group._groupIndex" class="category-group">
+                            <div class="category-title">
+                                {{ group.groupName }}
+                                <span v-if="group.tripType" :class="['trip-tag', group.tripType]">
+                                    {{ group.tripType === 'departure' ? '去程' : '返程' }}
+                                </span>
+                                <span class="float-end" style="font-size: 13px; color: #909399;">
+                                    {{ logFilterKeywords.trim() ? filterLogs(group.logs).length + ' / ' + group.logs.length : group.logs.length }} 条
+                                </span>
+                            </div>
+                            <div v-if="filterLogs(group.logs).length === 0" class="text-muted">{{ logFilterKeywords.trim() ? '无匹配日志' : '暂无日志' }}</div>
+                            <div v-else>
+                                <div v-for="(log, logIndex) in filterLogs(group.logs)" :key="logIndex" class="log-item" :data-log-key="`${app._appIndex}-${group._groupIndex}-${logIndex}`">
+                                    <!-- 日志头部：可点击折叠/展开 -->
+                                    <div class="log-header-bar" @click="toggleLogCollapse(app._appIndex, group._groupIndex, logIndex)" style="cursor: pointer;">
+                                        <span style="font-size: 12px; margin-right: 4px;">{{ isLogCollapsed(app._appIndex, group._groupIndex, logIndex) ? '▶' : '▼' }}</span>
+                                        <!-- 显示大类小类信息 -->
+                                        <span v-if="log.category" class="category-tag category-major" style="cursor: pointer;" @click.stop="copyText(log.category)" title="点击复制">{{ log.category }}</span>
+                                        <span v-if="log.subCategory" class="category-tag category-sub" style="cursor: pointer;" @click.stop="copyText(log.subCategory)" title="点击复制">{{ log.subCategory }}</span>
+                                        <!-- 跳转链接：紧跟小类标签后面 -->
+                                        <a v-if="searchForm.idType !== 'traceid' && searchForm.idType !== 'userInfo' && extractTraceId(log)" class="traceid-link" style="margin-left: 8px; font-size: 12px;" @click.stop="jumpToTraceId(extractTraceId(log))" title="点击跳转到traceid查询">ApmTraceId: {{ extractTraceId(log) }}</a>
+                                        <a v-if="searchForm.idType !== 'traceid' && shouldShowTempSerialNo(group.groupName) && extractTempSerialNo(log)" class="traceid-link" style="margin-left: 8px; font-size: 12px;" @click.stop="jumpToTempSerialNo(extractTempSerialNo(log))" title="点击跳转到临时单号查询">临时单号: {{ extractTempSerialNo(log) }}</a>
+                                        <a v-if="searchForm.idType === 'userInfo' && log.contextId" class="traceid-link" style="margin-left: 8px; font-size: 12px;" @click.stop="jumpToTraceId(log.contextId)" title="点击跳转到traceid查询">ContextId: {{ log.contextId }}</a>
+                                        <span class="log-time" style="margin-bottom: 0; margin-left: auto;">{{ log.logTime }}</span>
+                                    </div>
+                                    <!-- 日志内容：可折叠 -->
+                                    <div v-show="!isLogCollapsed(app._appIndex, group._groupIndex, logIndex)">
+                                        <div class="log-content" :style="log.isRawHtml ? { maxHeight: 'none', overflowY: 'visible' } : {}">
+                                            <div v-if="log.isRawHtml" class="log-raw-textarea" readonly>
+                                                <pre v-if="logFilterKeywords.trim()" v-html="highlightText(getDisplayMsg(log).replace(/\\n/g, '\n'))"></pre>
+                                                <pre v-else>{{ getDisplayMsg(log).replace(/\\n/g, '\n') }}</pre>
+                                            </div>
+                                            <div v-else-if="isJson(getDisplayMsg(log))" class="log-content-json">
+                                                <pre v-if="logFilterKeywords.trim()" v-html="highlightText(formatJson(getDisplayMsg(log)))"></pre>
+                                                <pre v-else>{{ formatJson(getDisplayMsg(log)) }}</pre>
+                                            </div>
+                                            <div v-else>
+                                                <span v-if="logFilterKeywords.trim()" v-html="highlightText(getDisplayMsg(log))"></span>
+                                                <span v-else>{{ getDisplayMsg(log) }}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading - 移除全页遮罩，改为在结果面板中显示 -->
+    </div>
+
+    <!-- Vue 3 -->
+    <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.js"></script>
+    <!-- Element Plus -->
+    <script src="https://cdn.jsdelivr.net/npm/element-plus/dist/index.full.js"></script>
+    <!-- Axios -->
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
+    <script>
+        const { createApp, ref, computed, onMounted, watch, nextTick } = Vue;
+
+        createApp({
+            setup() {
+                // App ID 配置
+                const appConfig = {
+                    'flight.netcore.searchflights.wechatcore': {
+                        appId: '3295971',
+                        token: 'a9c8dd1c-a77c-40c5-a7e9-b15685361024',
+                        name: 'flight.netcore.searchflights.wechatcore-网关站'
+                    },
+                    'flight.searchflights.roundtripengine': {
+                        appId: '3296871',
+                        token: '37bf686f-f8e2-4007-b360-0fbb7ec31834',
+                        name: 'flight.searchflights.roundtripengine-产品站'
+                    },
+                    'flight.node.flightbffv2': {
+                        appId: '3297623',
+                        token: '07afb85b-7c91-4432-bc47-94399d057b8a',
+                        name: 'flight.node.flightbffv2'
+                    },
+                    'flight.netcore.compass': {
+                        appId: '114741',
+                        token: '6ea2badb-9582-4854-8d81-1a1070b26375',
+                        name: 'flight.netcore.compass'
+                    },
+                    'flight.netcore.searchflights.buildcache': {
+                        appId: '103156',
+                        token: 'd47a7a5d-ed6e-4064-9506-4f89f52d8b29',
+                        name: 'flight.netcore.searchflights.buildcache'
+                    },
+                    'flight.node.flightquery': {
+                        appId: '117323',
+                        token: 'cdedd9a4-af15-4694-a089-c965ed48abb8',
+                        name: 'flight.node.flightquery'
+                    },
+                    'flight.netcore.searchflights.wechat': {
+                        appId: '102781',
+                        token: '1c0e970a-beeb-4f8b-963d-d300acb4fed8',
+                        name: 'flight.netcore.searchflights.wechat-微信站'
+                    },
+                    'flight.searchflights.connectgateway': {
+                        appId: '3303660',
+                        token: 'e987efa1-aacc-4809-a619-41528ed1781e',
+                        name: 'flight.searchflights.connectgateway-联运网关站'
+                    },
+                    'flight.searchflights.connectengine': {
+                        appId: '3296870',
+                        token: '8949f30b-1e90-4b36-bb87-fc9a1534f8b9',
+                        name: 'flight.searchflights.connectengine-联运产品站'
+                    },
+                    'flight.netcore.searchflights.wechatapi': {
+                        appId: '102782',
+                        token: '691b8cad-0172-47e2-8b26-71e09a59e1a0',
+                        name: 'flight.netcore.searchflights.wechatapi-微信API站'
+                    }
+                };
+
+                // 搜索表单
+                const searchForm = ref({
+                    idType: 'traceid',
+                    idValue: '',
+                    timeRange: []
+                });
+
+                // 监听ID类型变化，清空日志展示并自动填充默认值
+                watch(() => searchForm.value.idType, (newVal) => {
+                    // 清空日志展示
+                    results.value = [];
+                    searched.value = false;
+                    collapsedApps.value = {};
+                    collapsedLogs.value = {};
+                    logFilterKeywords.value = '';
+                    tagGenerateTime.value = '';
+
+                    if (newVal === 'userInfo') {
+                        searchForm.value.idValue = 'ohmdTt-5CpVH-yyEH3mkTTynj7fg';
+                    }
+                });
+
+                const loading = ref(false);
+                const loadingText = ref('');
+                const results = ref([]);
+                const searched = ref(false);
+                const tagGenerateTime = ref('');
+                const collapsedApps = ref({}); // 跟踪各应用站的折叠状态
+                const collapsedLogs = ref({}); // 跟踪各日志的折叠状态
+                const selectedTimeRange = ref(''); // 跟踪选中的时间范围
+                const logFilterKeywords = ref(''); // 日志模糊搜索关键词
+
+                // 全局搜索统计：计算所有日志中的匹配数
+                const globalFilterStats = computed(() => {
+                    let total = 0;
+                    let matched = 0;
+                    const keyword = logFilterKeywords.value.trim();
+                    for (const app of results.value) {
+                        for (const group of app.groups) {
+                            total += group.logs.length;
+                            if (keyword) {
+                                matched += group.logs.filter(log => {
+                                    const msg = getDisplayMsg(log) || '';
+                                    return msg.toLowerCase().includes(keyword.toLowerCase());
+                                }).length;
+                            }
+                        }
+                    }
+                    return { total, matched: keyword ? matched : total };
+                });
+
+                // 过滤后的结果：搜索时隐藏无匹配日志的站点和分组
+                const filteredResults = computed(() => {
+                    const keyword = logFilterKeywords.value.trim();
+                    if (!keyword) return results.value.map((app, appIndex) => ({
+                        ...app,
+                        _appIndex: appIndex,
+                        groups: app.groups.map((group, groupIndex) => ({
+                            ...group,
+                            _groupIndex: groupIndex
+                        }))
+                    }));
+                    return results.value.map((app, appIndex) => {
+                        const filteredGroups = app.groups
+                            .map((group, groupIndex) => ({
+                                ...group,
+                                _groupIndex: groupIndex
+                            }))
+                            .filter(group => filterLogs(group.logs).length > 0);
+                        if (filteredGroups.length === 0) return null;
+                        return {
+                            ...app,
+                            _appIndex: appIndex,
+                            groups: filteredGroups,
+                            totalLogs: filteredGroups.reduce((sum, g) => sum + g.logs.length, 0)
+                        };
+                    }).filter(Boolean);
+                });
+
+                // 监听搜索关键词变化，自动展开匹配的日志
+                watch(logFilterKeywords, (newVal) => {
+                    const keyword = newVal.trim();
+
+                    // 清空关键词时，折叠所有日志和站点
+                    if (!keyword) {
+                        const newCollapsedApps = {};
+                        const newCollapsedLogs = {};
+                        for (let appIndex = 0; appIndex < results.value.length; appIndex++) {
+                            newCollapsedApps[appIndex] = true;
+                            const app = results.value[appIndex];
+                            for (let groupIndex = 0; groupIndex < app.groups.length; groupIndex++) {
+                                for (let logIndex = 0; logIndex < app.groups[groupIndex].logs.length; logIndex++) {
+                                    newCollapsedLogs[`${appIndex}-${groupIndex}-${logIndex}`] = true;
+                                }
+                            }
+                        }
+                        collapsedApps.value = newCollapsedApps;
+                        collapsedLogs.value = newCollapsedLogs;
+                        return;
+                    }
+
+                    // 遍历所有结果，展开包含匹配日志的应用和日志项
+                    let firstMatchKey = null;
+                    for (let appIndex = 0; appIndex < results.value.length; appIndex++) {
+                        const app = results.value[appIndex];
+                        let appHasMatch = false;
+
+                        for (let groupIndex = 0; groupIndex < app.groups.length; groupIndex++) {
+                            const group = app.groups[groupIndex];
+                            for (let logIndex = 0; logIndex < group.logs.length; logIndex++) {
+                                const log = group.logs[logIndex];
+                                const msg = getDisplayMsg(log) || '';
+                                if (msg.toLowerCase().includes(keyword.toLowerCase())) {
+                                    appHasMatch = true;
+                                    const key = `${appIndex}-${groupIndex}-${logIndex}`;
+                                    collapsedLogs.value[key] = false;
+                                    // 记录第一条匹配的日志key
+                                    if (!firstMatchKey) {
+                                        firstMatchKey = key;
+                                    }
+                                }
+                            }
+                        }
+
+                        // 展开包含匹配的应用
+                        if (appHasMatch) {
+                            collapsedApps.value[appIndex] = false;
+                        }
+                    }
+
+                    // 滚动到第一条匹配的日志
+                    if (firstMatchKey) {
+                        nextTick(() => {
+                            const el = document.querySelector(`[data-log-key="${firstMatchKey}"]`);
+                            if (el) {
+                                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            }
+                        });
+                    }
+                });
+
+                // 获取ID输入框占位符
+                const getIdPlaceholder = () => {
+                    const placeholders = {
+                        'traceid': '请输入traceid',
+                        'tempSerialNo': '请输入临时单号',
+                        'orderNo': '请输入订单号',
+                        'tag': '请输入tag'
+                    };
+                    return placeholders[searchForm.value.idType] || '请输入ID';
+                };
+
+                // 初始化时间范围
+                const initTimeRange = () => {
+                    const end = new Date();
+                    const start = new Date();
+                    start.setMinutes(start.getMinutes() - 30);
+                    
+                    searchForm.value.timeRange = [
+                        formatDateTime(start),
+                        formatDateTime(end)
+                    ];
+                };
+
+                // 格式化日期时间
+                const formatDateTime = (date) => {
+                    const y = date.getFullYear();
+                    const m = String(date.getMonth() + 1).padStart(2, '0');
+                    const d = String(date.getDate()).padStart(2, '0');
+                    const h = String(date.getHours()).padStart(2, '0');
+                    const min = String(date.getMinutes()).padStart(2, '0');
+                    const s = String(date.getSeconds()).padStart(2, '0');
+                    return `${y}-${m}-${d} ${h}:${min}:${s}`;
+                };
+
+                // 快速设置时间范围（分钟）
+                const setQuickTimeRange = (minutes) => {
+                    const end = new Date();
+                    const start = new Date();
+                    start.setMinutes(start.getMinutes() - minutes);
+                    
+                    searchForm.value.timeRange = [
+                        formatDateTime(start),
+                        formatDateTime(end)
+                    ];
+                    
+                    // 设置选中的时间范围
+                    selectedTimeRange.value = `quick_${minutes}`;
+                    
+                    // 如果有ID值，自动触发查询
+                    if (searchForm.value.idValue && searchForm.value.idValue.trim()) {
+                        handleSearch();
+                    }
+                };
+
+                // 设置今天的时间范围
+                const setTodayRange = () => {
+                    const today = new Date();
+                    const start = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0);
+                    const end = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
+                    
+                    searchForm.value.timeRange = [
+                        formatDateTime(start),
+                        formatDateTime(end)
+                    ];
+                    
+                    // 设置选中的时间范围
+                    selectedTimeRange.value = 'today';
+                    
+                    // 如果有ID值，自动触发查询
+                    if (searchForm.value.idValue && searchForm.value.idValue.trim()) {
+                        handleSearch();
+                    }
+                };
+
+                // 设置昨天的时间范围
+                const setYesterdayRange = () => {
+                    const yesterday = new Date();
+                    yesterday.setDate(yesterday.getDate() - 1);
+                    const start = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 0, 0, 0);
+                    const end = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 23, 59, 59);
+                    
+                    searchForm.value.timeRange = [
+                        formatDateTime(start),
+                        formatDateTime(end)
+                    ];
+                    
+                    // 设置选中的时间范围
+                    selectedTimeRange.value = 'yesterday';
+                    
+                    // 如果有ID值，自动触发查询
+                    if (searchForm.value.idValue && searchForm.value.idValue.trim()) {
+                        handleSearch();
+                    }
+                };
+
+                // 添加毫秒
+                const addMilliseconds = (datetime) => {
+                    if (!datetime) return '';
+                    return datetime + '.000';
+                };
+
+                // 判断是否为JSON
+                const isJson = (str) => {
+                    if (typeof str !== 'string') return false;
+                    try {
+                        JSON.parse(str);
+                        return true;
+                    } catch (e) {
+                        return false;
+                    }
+                };
+
+                // 清理日志消息（去除开头的+08:00）
+                const cleanLogMsg = (msg) => {
+                    if (typeof msg !== 'string') return msg;
+                    // 去除开头的 +08:00 或 +08:00 后面的空格或左括号
+                    return msg.replace(/^\+08:00\s*/, '').replace(/^\(/, '');
+                };
+
+                // 处理compass站点msg中的rp节点（去除JSON转义）
+                const processCompassMsg = (msg) => {
+                    if (typeof msg !== 'string') return { displayMsg: msg, parsedJson: null };
+                    
+                    // 先清理 +08:00 前缀
+                    let cleanedMsg = cleanLogMsg(msg);
+                    
+                    // 尝试找到JSON开始的位置（第一个'{'）
+                    // 先尝试替换字面字符 \n\n 为实际换行符
+                    let normalizedMsg = cleanedMsg.replace(/\\n\\n/g, '\n\n');
+                    // 如果上面没匹配到，说明原本就是实际换行符，使用原消息
+                    if (normalizedMsg === cleanedMsg) {
+                        normalizedMsg = cleanedMsg;
+                    }
+                    
+                    // 查找JSON开始的位置
+                    const jsonStart = normalizedMsg.indexOf('{');
+                    if (jsonStart !== -1) {
+                        const prefix = normalizedMsg.substring(0, jsonStart).trim();
+                        let jsonStr = normalizedMsg.substring(jsonStart);
+                        
+                        // 尝试解析JSON
+                        try {
+                            const obj = JSON.parse(jsonStr);
+                            // 如果包含rp节点，且rp的值是字符串，尝试解析rp
+                            if (obj.rp && typeof obj.rp === 'string') {
+                                try {
+                                    obj.rp = JSON.parse(obj.rp);
+                                } catch (e) {
+                                    // rp解析失败，保持原样
+                                }
+                            }
+                            // 返回格式化后的完整消息
+                            const formattedJson = JSON.stringify(obj, null, 2);
+                            const displayPrefix = prefix ? prefix + '\n\n' : '';
+                            return {
+                                displayMsg: displayPrefix + formattedJson,
+                                parsedJson: obj
+                            };
+                        } catch (e) {
+                            // JSON解析失败，尝试修复常见的格式问题（如缺少逗号）
+                            try {
+                                // 尝试修复缺少逗号的JSON（在数字/字符串/布尔值/对象/数组和引号之间添加逗号）
+                                let fixedJson = jsonStr;
+                                
+                                // 修复模式1: "value"\n"key" -> "value",\n"key"
+                                fixedJson = fixedJson.replace(/"\s*\n\s*"/g, '",\n"');
+                                
+                                // 修复模式2: }\n"key" -> },\n"key"
+                                fixedJson = fixedJson.replace(/}\s*\n\s*"/g, '},\n"');
+                                
+                                // 修复模式3: ]\n"key" -> ],\n"key"
+                                fixedJson = fixedJson.replace(/]\s*\n\s*"/g, '],\n"');
+                                
+                                // 修复模式4: 数字\n"key" -> 数字,\n"key"
+                                fixedJson = fixedJson.replace(/(\d+)\s*\n\s*"/g, '$1,\n"');
+                                
+                                // 修复模式5: false\n"key" 或 true\n"key"
+                                fixedJson = fixedJson.replace(/(false|true)\s*\n\s*"/g, '$1,\n"');
+                                
+                                // 尝试解析修复后的JSON
+                                const obj = JSON.parse(fixedJson);
+                                
+                                // 如果包含rp节点，且rp的值是字符串，尝试解析rp
+                                if (obj.rp && typeof obj.rp === 'string') {
+                                    try {
+                                        obj.rp = JSON.parse(obj.rp);
+                                    } catch (e) {
+                                        // rp解析失败，保持原样
+                                    }
+                                }
+                                
+                                // 返回格式化后的完整消息
+                                const formattedJson = JSON.stringify(obj, null, 2);
+                                const displayPrefix = prefix ? prefix + '\n\n' : '';
+                                return {
+                                    displayMsg: displayPrefix + formattedJson,
+                                    parsedJson: obj
+                                };
+                            } catch (e2) {
+                                // 修复失败，返回原始消息
+                                return { displayMsg: cleanedMsg, parsedJson: null };
+                            }
+                        }
+                    }
+                    
+                    return { displayMsg: cleanedMsg, parsedJson: null };
+                };
+
+                // 处理buildcache站点msg（flight.netcore.searchflights.buildcache）
+                const processBuildcacheMsg = (msg) => {
+                    if (typeof msg !== 'string') return { displayMsg: msg, parsedJson: null };
+                    
+                    // 先清理 +08:00 前缀
+                    let cleanedMsg = cleanLogMsg(msg);
+                    
+                    // 去除开头可能的左括号（因为日志格式可能是 +08:00(...)
+                    cleanedMsg = cleanedMsg.replace(/^\(/, '');
+                    
+                    // 尝试找到JSON开始的位置（第一个'{'）
+                    const jsonStart = cleanedMsg.indexOf('{');
+                    if (jsonStart !== -1) {
+                        let jsonStr = cleanedMsg.substring(jsonStart);
+                        
+                        // 去除末尾可能的右括号、分号和换行符
+                        jsonStr = jsonStr.replace(/\)\s*;?\s*\n?\s*$/, '');
+                        
+                        // 尝试解析JSON
+                        try {
+                            const obj = JSON.parse(jsonStr);
+                            
+                            // 格式化JSON
+                            const formattedJson = JSON.stringify(obj, null, 2);
+                            
+                            return {
+                                displayMsg: formattedJson,
+                                parsedJson: obj
+                            };
+                        } catch (e) {
+                            // JSON解析失败，尝试查找有效的JSON部分（从第一个{到最后一个}）
+                            try {
+                                const jsonEnd = jsonStr.lastIndexOf('}');
+                                if (jsonEnd !== -1) {
+                                    const validJsonStr = jsonStr.substring(0, jsonEnd + 1);
+                                    const obj = JSON.parse(validJsonStr);
+                                    const formattedJson = JSON.stringify(obj, null, 2);
+                                    return {
+                                        displayMsg: formattedJson,
+                                        parsedJson: obj
+                                    };
+                                }
+                            } catch (e2) {
+                                // 都失败了，返回原始消息
+                            }
+                            
+                            // JSON解析失败，返回原始消息
+                            return { displayMsg: cleanedMsg, parsedJson: null };
+                        }
+                    }
+                    
+                    return { displayMsg: cleanedMsg, parsedJson: null };
+                };
+
+                // 处理AvAdapter的ProcessPbResult消息（JSON数组格式）
+                const processAvAdapterMsg = (msg) => {
+                    if (typeof msg !== 'string') return { displayMsg: msg, parsedJson: null };
+
+                    // 先清理 +08:00 前缀
+                    let cleanedMsg = cleanLogMsg(msg);
+
+                    // 尝试找到JSON开始的位置（第一个'[' 或 '{'）
+                    const jsonStart = cleanedMsg.search(/[\[{]/);
+                    if (jsonStart !== -1) {
+                        const prefix = cleanedMsg.substring(0, jsonStart).trim();
+                        let jsonStr = cleanedMsg.substring(jsonStart);
+
+                        // 尝试解析JSON
+                        try {
+                            const obj = JSON.parse(jsonStr);
+                            const formattedJson = JSON.stringify(obj, null, 2);
+                            const displayPrefix = prefix ? prefix + '\n\n' : '';
+                            return {
+                                displayMsg: displayPrefix + formattedJson,
+                                parsedJson: Array.isArray(obj) ? null : obj
+                            };
+                        } catch (e) {
+                            // JSON解析失败，尝试截取到最后一个 ] 或 }
+                            try {
+                                const lastBracket = Math.max(jsonStr.lastIndexOf(']'), jsonStr.lastIndexOf('}'));
+                                if (lastBracket !== -1) {
+                                    const validJsonStr = jsonStr.substring(0, lastBracket + 1);
+                                    const obj = JSON.parse(validJsonStr);
+                                    const formattedJson = JSON.stringify(obj, null, 2);
+                                    const displayPrefix = prefix ? prefix + '\n\n' : '';
+                                    return {
+                                        displayMsg: displayPrefix + formattedJson,
+                                        parsedJson: Array.isArray(obj) ? null : obj
+                                    };
+                                }
+                            } catch (e2) {
+                                // 修复失败，返回原始消息
+                            }
+                            return { displayMsg: cleanedMsg, parsedJson: null };
+                        }
+                    }
+
+                    return { displayMsg: cleanedMsg, parsedJson: null };
+                };
+
+                // 处理最小价出参（OnewayMinPriceBook15）的消息
+                const processMinPriceBook15Msg = (msg) => {
+                    if (typeof msg !== 'string') return { displayMsg: msg, parsedJson: null };
+                    
+                    // 先清理 +08:00 前缀
+                    let cleanedMsg = cleanLogMsg(msg);
+                    
+                    // 尝试找到JSON开始的位置（第一个'{'）
+                    const jsonStart = cleanedMsg.indexOf('{');
+                    if (jsonStart !== -1) {
+                        const prefix = cleanedMsg.substring(0, jsonStart).trim();
+                        let jsonStr = cleanedMsg.substring(jsonStart);
+                        
+                        // 处理 "};[...]" 格式：分号后跟数组（可能为空或有内容）
+                        // 先尝试匹配 };[...] 模式，分别解析对象和数组
+                        const semicolonArrayMatch = jsonStr.match(/^([\s\S]*?\})\s*;\s*(\[[\s\S]*\])\s*$/);
+                        if (semicolonArrayMatch) {
+                            try {
+                                const obj = JSON.parse(semicolonArrayMatch[1]);
+                                const arr = JSON.parse(semicolonArrayMatch[2]);
+                                const formattedObj = JSON.stringify(obj, null, 2);
+                                const formattedArr = JSON.stringify(arr, null, 2);
+                                const displayPrefix = prefix ? prefix + '\n\n' : '';
+                                return {
+                                    displayMsg: displayPrefix + formattedObj + '\n\n--- 策略信息 ---\n\n' + formattedArr,
+                                    parsedJson: obj
+                                };
+                            } catch (e) {
+                                // 解析失败，继续尝试其他方式
+                            }
+                        }
+                        
+                        // 尝试去除末尾的分号和空数组（如 ";[]"）
+                        jsonStr = jsonStr.replace(/;\s*\[\]\s*$/, '');
+                        
+                        // 尝试解析JSON
+                        try {
+                            const obj = JSON.parse(jsonStr);
+                            
+                            // 格式化JSON，提取关键信息用于显示
+                            const formattedJson = JSON.stringify(obj, null, 2);
+                            const displayPrefix = prefix ? prefix + '\n\n' : '';
+                            
+                            return {
+                                displayMsg: displayPrefix + formattedJson,
+                                parsedJson: obj
+                            };
+                        } catch (e) {
+                            // JSON解析失败，尝试找到有效的JSON部分
+                            try {
+                                // 找到最后一个'}'的位置
+                                const lastBrace = jsonStr.lastIndexOf('}');
+                                if (lastBrace !== -1) {
+                                    jsonStr = jsonStr.substring(0, lastBrace + 1);
+                                    const obj = JSON.parse(jsonStr);
+                                    
+                                    // 格式化JSON
+                                    const formattedJson = JSON.stringify(obj, null, 2);
+                                    const displayPrefix = prefix ? prefix + '\n\n' : '';
+                                    
+                                    return {
+                                        displayMsg: displayPrefix + formattedJson,
+                                        parsedJson: obj
+                                    };
+                                }
+                            } catch (e2) {
+                                // 还是失败，返回原始消息
+                            }
+                            
+                            // 返回原始消息
+                            return { displayMsg: cleanedMsg, parsedJson: null };
+                        }
+                    }
+                    
+                    return { displayMsg: cleanedMsg, parsedJson: null };
+                };
+
+                // 处理flightquery站点msg（url/header/req/res分段格式）
+                const processFlightQueryMsg = (msg) => {
+                    if (typeof msg !== 'string') return { displayMsg: msg, parsedJson: null };
+
+                    let cleanedMsg = cleanLogMsg(msg);
+
+                    // 匹配 url: xxx  header: {...}  req: {...}  res: {...} 格式
+                    const urlMatch = cleanedMsg.match(/url:\s*([^\n]+)/i);
+                    const headerMatch = cleanedMsg.match(/header:\s*(\{[\s\S]*?\})\s*\n\n\s*req:/i);
+                    const reqMatch = cleanedMsg.match(/req:\s*(\{[\s\S]*?\})\s*\n\n\s*res:/i);
+                    const resMatch = cleanedMsg.match(/res:\s*(\{[\s\S]*\})\s*$/);
+
+                    if (urlMatch || headerMatch || reqMatch || resMatch) {
+                        let displayMsg = '';
+
+                        if (urlMatch) {
+                            displayMsg += '--- URL ---\n' + urlMatch[1].trim() + '\n\n';
+                        }
+
+                        if (headerMatch) {
+                            try {
+                                const headerObj = JSON.parse(headerMatch[1]);
+                                displayMsg += '--- Header ---\n' + JSON.stringify(headerObj, null, 2) + '\n\n';
+                            } catch (e) {
+                                displayMsg += '--- Header ---\n' + headerMatch[1] + '\n\n';
+                            }
+                        }
+
+                        if (reqMatch) {
+                            try {
+                                const reqObj = JSON.parse(reqMatch[1]);
+                                displayMsg += '--- Request ---\n' + JSON.stringify(reqObj, null, 2) + '\n\n';
+                            } catch (e) {
+                                displayMsg += '--- Request ---\n' + reqMatch[1] + '\n\n';
+                            }
+                        }
+
+                        if (resMatch) {
+                            try {
+                                const resObj = JSON.parse(resMatch[1]);
+                                displayMsg += '--- Response ---\n' + JSON.stringify(resObj, null, 2);
+                            } catch (e) {
+                                displayMsg += '--- Response ---\n' + resMatch[1];
+                            }
+                        }
+
+                        // 提取parsedJson（优先用req，用于提取traceId等）
+                        let parsedJson = null;
+                        if (reqMatch) {
+                            try { parsedJson = JSON.parse(reqMatch[1]); } catch (e) {}
+                        }
+
+                        return { displayMsg: displayMsg.trim(), parsedJson };
+                    }
+
+                    return { displayMsg: cleanedMsg, parsedJson: null };
+                };
+
+                // 更新URL参数
+                const updateUrlParams = () => {
+                    const url = new URL(window.location.href);
+                    
+                    // 清除所有现有的ID参数和时间范围参数
+                    url.searchParams.delete('traceid');
+                    url.searchParams.delete('tempSerialNo');
+                    url.searchParams.delete('orderNo');
+                    url.searchParams.delete('tag');
+                    url.searchParams.delete('beginTime');
+                    url.searchParams.delete('endTime');
+                    
+                    // 根据当前选择的类型设置对应的参数
+                    const idTypeMap = {
+                        'traceid': 'traceid',
+                        'tempSerialNo': 'tempSerialNo',
+                        'orderNo': 'orderNo',
+                        'tag': 'tag'
+                    };
+                    
+                    const urlParam = idTypeMap[searchForm.value.idType];
+                    if (urlParam && searchForm.value.idValue) {
+                        url.searchParams.set(urlParam, searchForm.value.idValue);
+                    }
+                    
+                    // 保存时间范围到URL
+                    if (searchForm.value.timeRange && searchForm.value.timeRange.length === 2) {
+                        url.searchParams.set('beginTime', searchForm.value.timeRange[0]);
+                        url.searchParams.set('endTime', searchForm.value.timeRange[1]);
+                    }
+                    
+                    // 更新浏览器URL（不刷新页面）
+                    window.history.pushState({}, '', url.toString());
+                };
+
+                // 格式化JSON
+                const formatJson = (str) => {
+                    try {
+                        return JSON.stringify(JSON.parse(str), null, 2);
+                    } catch (e) {
+                        return str;
+                    }
+                };
+
+                // 查询天网日志
+                const querySkyNetLogs = async (params) => {
+                    const url = '/api/skynet-logs';
+                    
+                    try {
+                        const response = await axios.post(url, params, {
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            timeout: 30000
+                        });
+
+                        if (response.data && response.data.code === 200) {
+                            return response.data.result || { list: [], count: 0 };
+                        }
+                        return { list: [], count: 0 };
+                    } catch (error) {
+                        console.error('查询天网日志失败:', error);
+                        return { list: [], count: 0 };
+                    }
+                };
+
+                // 查询站点日志（不限制大类，查一次），然后按category分组处理
+                // categoryConfig: { category名: { groupPrefix: '组名前缀', processMsg: (log) => processedLog } }
+                const queryAndGroupByCategory = async (app, traceid, beginTime, endTime, categoryConfig) => {
+                    // 不传category，查一次获取所有大类日志
+                    const allLogs = await querySkyNetLogs({
+                        appIds: [app.appId],
+                        contextId: traceid,
+                        beginTime: addMilliseconds(beginTime),
+                        endTime: addMilliseconds(endTime),
+                        tokens: [app.token],
+                        pageSize: 500,
+                        operationType: 'next',
+                        lastRowTime: 0,
+                        lastRowData: ''
+                    });
+
+                    const list = (allLogs.list || []).sort((a, b) => 
+                        new Date(b.logTime) - new Date(a.logTime)
+                    );
+
+                    // 按category分组
+                    const categoryMap = {};
+                    for (const log of list) {
+                        const cat = log.category || 'Unknown';
+                        if (!categoryMap[cat]) categoryMap[cat] = [];
+                        categoryMap[cat].push(log);
+                    }
+
+                    // 按配置处理每个大类
+                    const groups = [];
+                    let totalLogs = 0;
+                    for (const [cat, config] of Object.entries(categoryConfig)) {
+                        const logs = categoryMap[cat] || [];
+                        if (logs.length === 0) continue;
+
+                        const processedLogs = logs.map(log => config.processMsg(log));
+                        totalLogs += processedLogs.length;
+
+                        // 如果需要按subCategory分组（如AvAdapter、TransitLineV2Adapter）
+                        if (config.groupBySubCategory) {
+                            const subGroups = {};
+                            for (const log of processedLogs) {
+                                const sub = log.subCategory || cat;
+                                if (!subGroups[sub]) subGroups[sub] = [];
+                                subGroups[sub].push(log);
+                            }
+                            for (const [sub, subLogs] of Object.entries(subGroups)) {
+                                groups.push({
+                                    groupName: `${config.groupPrefix} (${sub})`,
+                                    logs: subLogs,
+                                    tripType: ''
+                                });
+                            }
+                        } else {
+                            groups.push({
+                                groupName: `${config.groupPrefix} (${cat})`,
+                                logs: processedLogs,
+                                tripType: ''
+                            });
+                        }
+                    }
+
+                    return { groups, totalLogs };
+                };
+
+                // 查询tag生成时间
+                const queryTagGenerateTime = async (tag) => {
+                    const url = '/api/tag-generate-time';
+                    
+                    try {
+                        const response = await axios.post(url, { tag }, {
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            timeout: 10000
+                        });
+
+                        if (response.data && response.data.IsSuccess) {
+                            return response.data.GenerateTime;
+                        }
+                    } catch (error) {
+                        console.error('查询tag生成时间失败:', error);
+                    }
+                    return null;
+                };
+
+                // 获取日志显示消息
+                const getDisplayMsg = (log) => {
+                    // 如果有displayMsg（处理过的消息），使用它
+                    if (log && log.displayMsg) return log.displayMsg;
+                    // 否则返回原始msg
+                    if (log && log.msg) return log.msg;
+                    return '';
+                };
+
+                // 日志模糊搜索：过滤日志
+                const filterLogs = (logs) => {
+                    const keyword = logFilterKeywords.value.trim();
+                    if (!keyword) return logs;
+                    return logs.filter(log => {
+                        const msg = getDisplayMsg(log) || '';
+                        return msg.toLowerCase().includes(keyword.toLowerCase());
+                    });
+                };
+
+                // 日志模糊搜索：高亮关键词（返回 HTML）
+                const highlightText = (text) => {
+                    const keyword = logFilterKeywords.value.trim();
+                    if (!keyword || !text) return escapeHtml(text);
+                    const escaped = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                    const regex = new RegExp(`(${escaped})`, 'gi');
+                    return escapeHtml(text).replace(regex, '<mark>$1</mark>');
+                };
+
+                // HTML 转义
+                const escapeHtml = (str) => {
+                    if (!str) return '';
+                    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+                };
+
+                // 清空日志搜索
+                const clearLogFilter = () => {
+                    logFilterKeywords.value = '';
+                };
+
+                // 递归查找对象中的ApmTraceId
+                const findTraceIdInObject = (obj) => {
+                    if (!obj || typeof obj !== 'object') return null;
+                    
+                    // 检查当前对象的属性
+                    if (obj.ApmTraceId) return obj.ApmTraceId;
+                    if (obj.traceId) return obj.traceId;
+                    if (obj.TraceId) return obj.TraceId;
+                    
+                    // 递归检查子对象
+                    for (const key of Object.keys(obj)) {
+                        const value = obj[key];
+                        if (value && typeof value === 'object') {
+                            const found = findTraceIdInObject(value);
+                            if (found) return found;
+                        }
+                    }
+                    
+                    return null;
+                };
+
+                // 提取traceid
+                const extractTraceId = (log) => {
+                    if (!log) return null;
+                    
+                    // 检查日志是否属于使用 contextId 的站点（wechatcore、wechat、connectgateway）
+                    // 通过 appConfig 获取 appUk，然后与 log.appUk 对比
+                    const wechatcoreAppUk = appConfig['flight.netcore.searchflights.wechatcore']?.appUk || '';
+                    const wechatAppUk = appConfig['flight.netcore.searchflights.wechat']?.appUk || '';
+                    const connectgatewayAppUk = appConfig['flight.searchflights.connectgateway']?.appUk || '';
+                    const isWechatcore = (log.appUk && wechatcoreAppUk && log.appUk === wechatcoreAppUk) || 
+                                        (log.groupName && log.groupName.includes('wechatcore'));
+                    const isWechat = (log.appUk && wechatAppUk && log.appUk === wechatAppUk) || 
+                                    (log.groupName && log.groupName.includes('wechat') && !log.groupName.includes('wechatcore'));
+                    const isConnectgateway = (log.appUk && connectgatewayAppUk && log.appUk === connectgatewayAppUk) || 
+                                            (log.groupName && log.groupName.includes('connectgateway'));
+                    
+                    // 对 wechatcore、wechat、connectgateway 检查 contextId 字段
+                    if ((isWechatcore || isWechat || isConnectgateway) && log.contextId && log.contextId.trim()) {
+                        return log.contextId;
+                    }
+                    
+                    // 如果有parsedJson（已解析的JSON对象），递归查找ApmTraceId
+                    if (log.parsedJson) {
+                        const found = findTraceIdInObject(log.parsedJson);
+                        if (found) return found;
+                    }
+                    
+                    // 从extraInfo中提取
+                    if (log.extraInfo) {
+                        try {
+                            const extra = JSON.parse(log.extraInfo);
+                            if (extra.ApmTraceId) return extra.ApmTraceId;
+                        } catch (e) {}
+                    }
+                    
+                    // 优先从原始msg字段中提取ApmTraceId（compass日志需要）
+                    if (log.msg) {
+                        // 尝试从原始msg的JSON中提取
+                        if (isJson(log.msg)) {
+                            try {
+                                const obj = JSON.parse(log.msg);
+                                const found = findTraceIdInObject(obj);
+                                if (found) return found;
+                            } catch (e) {}
+                        }
+                        
+                        // 尝试从原始msg的字符串中提取
+                        let match = log.msg.match(/ApmTraceId["\s:]+([^\s",}]+)/i);
+                        if (match) return match[1];
+                        
+                        match = log.msg.match(/traceId["\s:]+([^\s",}]+)/i);
+                        if (match) return match[1];
+                    }
+                    
+                    // 如果原始msg中没有找到，再尝试从displayMsg中提取
+                    const msg = getDisplayMsg(log);
+                    
+                    // 尝试从msg中提取ApmTraceId
+                    if (isJson(msg)) {
+                        try {
+                            const obj = JSON.parse(msg);
+                            const found = findTraceIdInObject(obj);
+                            if (found) return found;
+                        } catch (e) {}
+                    }
+                    
+                    // 尝试从字符串中提取
+                    let match = msg.match(/ApmTraceId["\s:]+([^\s",}]+)/i);
+                    if (match) return match[1];
+                    
+                    match = msg.match(/traceId["\s:]+([^\s",}]+)/i);
+                    if (match) return match[1];
+                    
+                    return null;
+                };
+
+                // 判断是否应该显示临时单号
+                const shouldShowTempSerialNo = (groupName) => {
+                    // AV数据、联运线路、单程最小价入参、单程最小价出参不显示临时单号
+                    const excludeGroups = [
+                        '单程最小价入参 (OnewayMinPriceAdapter)',
+                        '单程最小价出参 (OnewayMinPriceBook15)'
+                    ];
+                    if (excludeGroups.includes(groupName)) return false;
+                    // av数据、联运线路开头的组也不显示临时单号
+                    if (groupName.startsWith('av数据') || groupName.startsWith('联运线路')) return false;
+                    return true;
+                };
+
+                // 提取临时单号
+                const extractTempSerialNo = (log) => {
+                    if (!log) return null;
+                    
+                    // 优先从已解析的JSON中提取（parsedJson）
+                    if (log.parsedJson && log.parsedJson.tempSerialNo) {
+                        return log.parsedJson.tempSerialNo;
+                    }
+                    
+                    // 从日志对象的tempSerialNo字段中提取
+                    if (log.tempSerialNo && typeof log.tempSerialNo === 'string' && log.tempSerialNo.trim()) {
+                        return log.tempSerialNo;
+                    }
+                    
+                    // 检查所有字段，查找包含tempSerialNo的字段
+                    for (const key of Object.keys(log)) {
+                        if (key.toLowerCase().includes('tempserialno') && log[key] && typeof log[key] === 'string' && log[key].trim()) {
+                            return log[key];
+                        }
+                    }
+                    
+                    // 从可能的字段中提取临时单号
+                    const fieldsToCheck = ['filter1', 'filter2', 'customField1', 'customField2', 'indexContext'];
+                    for (const field of fieldsToCheck) {
+                        if (log[field] && typeof log[field] === 'string' && log[field].trim()) {
+                            return log[field];
+                        }
+                    }
+                    
+                    // 如果没有从上述字段中提取到，从msg中提取
+                    if (!log.msg) return null;
+                    
+                    const msg = log.msg;
+                    
+                    if (isJson(msg)) {
+                        try {
+                            const obj = JSON.parse(msg);
+                            if (obj.tempSerialNo) return obj.tempSerialNo;
+                            if (obj.TempSerialNo) return obj.TempSerialNo;
+                        } catch (e) {}
+                    }
+                    
+                    let match = msg.match(/tempSerialNo["\s:]+([^\s",}]+)/i);
+                    if (match) return match[1];
+                    
+                    match = msg.match(/TempSerialNo["\s:]+([^\s",}]+)/i);
+                    if (match) return match[1];
+                    
+                    return null;
+                };
+
+                // 跳转到traceid查询
+                const jumpToTraceId = (traceid) => {
+                    const url = new URL(window.location.href);
+                    url.searchParams.delete('tempSerialNo');
+                    url.searchParams.delete('orderNo');
+                    url.searchParams.delete('tag');
+                    url.searchParams.set('traceid', traceid);
+                    window.location.href = url.toString();
+                };
+
+                // 跳转到临时单号查询
+                const jumpToTempSerialNo = (tempSerialNo) => {
+                    const url = new URL(window.location.href);
+                    url.searchParams.delete('traceid');
+                    url.searchParams.delete('orderNo');
+                    url.searchParams.delete('tag');
+                    url.searchParams.set('tempSerialNo', tempSerialNo);
+                    window.location.href = url.toString();
+                };
+
+                // 生成天网日志URL
+                const getSkyNetUrl = () => {
+                    const traceid = searchForm.value.idValue.trim();
+                    const timeRange = searchForm.value.timeRange;
+                    let beginTime = '';
+                    let endTime = '';
+                    if (timeRange && timeRange.length === 2) {
+                        beginTime = timeRange[0] + '.000';
+                        endTime = timeRange[1] + '.000';
+                    }
+                    const data = {
+                        appId: 0,
+                        application: "",
+                        category: ["", "", ""],
+                        dataRange: [beginTime, endTime],
+                        endTime: endTime,
+                        beginTime: beginTime,
+                        env: "",
+                        filter1: "",
+                        filter2: "",
+                        flowID: traceid,
+                        idc: "",
+                        ifHubbleProduct: false,
+                        level: "",
+                        message: "",
+                        seniorMode: false,
+                        seniorQueryValue: "点击添加组合查询条件",
+                        serverIP: [],
+                        showMode: 1,
+                        time: 0
+                    };
+                    return `https://skyeye.17usoft.com/logs/realquery?app=&data=${encodeURIComponent(JSON.stringify(data))}&pageSize=100&query=true`;
+                };
+
+                // 处理查询
+                const handleSearch = async () => {
+                    if (!searchForm.value.idValue || !searchForm.value.idValue.trim()) {
+                        ElementPlus.ElMessage.warning('请输入ID');
+                        return;
+                    }
+
+                    logFilterKeywords.value = ''; // 重置日志搜索
+
+                    loading.value = true;
+                    loadingText.value = '准备查询...';
+                    searched.value = true;
+                    results.value = [];
+                    collapsedApps.value = {}; // 重置折叠状态
+                    collapsedLogs.value = {};
+
+                    // 更新URL参数
+                    updateUrlParams();
+
+                    try {
+                        switch (searchForm.value.idType) {
+                            case 'traceid':
+                                await searchByTraceId();
+                                break;
+                            case 'tempSerialNo':
+                                await searchByTempSerialNo();
+                                break;
+                            case 'orderNo':
+                                await searchByOrderNo();
+                                break;
+                            case 'tag':
+                                await searchByTag();
+                                break;
+                            case 'userInfo':
+                                await searchByUserInfo();
+                                break;
+                        }
+                        
+                        if (results.value.length === 0) {
+                            ElementPlus.ElMessage.info('未查询到相关日志');
+                        } else {
+                            const totalLogs = results.value.reduce((sum, app) => sum + app.totalLogs, 0);
+                            ElementPlus.ElMessage.success(`查询完成，共找到 ${totalLogs} 条日志`);
+                        }
+                    } catch (error) {
+                        console.error('查询失败:', error);
+                        ElementPlus.ElMessage.error('查询失败: ' + (error.message || '未知错误'));
+                    } finally {
+                        loading.value = false;
+                        loadingText.value = '';
+                    }
+                };
+
+                // 根据traceid查询
+                const searchByTraceId = async () => {
+                    const traceid = searchForm.value.idValue.trim();
+                    const timeRange = searchForm.value.timeRange;
+                    
+                    if (!timeRange || timeRange.length < 2) {
+                        ElementPlus.ElMessage.warning('请选择日志时间范围');
+                        loading.value = false;
+                        return;
+                    }
+                    
+                    const [beginTime, endTime] = timeRange;
+
+                    // 1. flight.netcore.searchflights.wechatcore-网关站
+                    loadingText.value = '正在查询 网关站 日志...';
+                    const app1 = appConfig['flight.netcore.searchflights.wechatcore'];
+                    const logs1 = await querySkyNetLogs({
+                        appIds: [app1.appId],
+                        category: 'ServiceProxy',
+                        contextId: traceid,
+                        beginTime: addMilliseconds(beginTime),
+                        endTime: addMilliseconds(endTime),
+                        tokens: [app1.token],
+                        pageSize: 500,
+                        operationType: 'next',
+                        lastRowTime: 0,
+                        lastRowData: ''
+                    });
+
+                    // 立即添加到结果中（渐进式渲染）
+                    const logs1List = (logs1.list || []).sort((a, b) => 
+                        new Date(b.logTime) - new Date(a.logTime)
+                    ).map(log => ({
+                        ...log,
+                        contextId: traceid,  // wechatcore 使用 contextId 作为 traceid
+                        msg: cleanLogMsg(log.msg)
+                    }));
+                    if (logs1List.length > 0) {
+                        results.value.push({
+                            appName: app1.name,
+                            groups: [
+                                {
+                                    groupName: '入参 (ServiceProxy)',
+                                    logs: logs1List,
+                                    tripType: ''
+                                }
+                            ],
+                            totalLogs: logs1List.length
+                        });
+                    }
+
+                    // 1.5 flight.netcore.searchflights.wechat-微信站
+                    loadingText.value = '正在查询 微信站 日志...';
+                    const app1b = appConfig['flight.netcore.searchflights.wechat'];
+                    const logs1b = await querySkyNetLogs({
+                        appIds: [app1b.appId],
+                        category: 'ServiceProxy',
+                        contextId: traceid,
+                        beginTime: addMilliseconds(beginTime),
+                        endTime: addMilliseconds(endTime),
+                        tokens: [app1b.token],
+                        pageSize: 500,
+                        operationType: 'next',
+                        lastRowTime: 0,
+                        lastRowData: ''
+                    });
+
+                    const logs1bList = (logs1b.list || []).sort((a, b) => 
+                        new Date(b.logTime) - new Date(a.logTime)
+                    ).map(log => ({
+                        ...log,
+                        contextId: traceid,
+                        msg: cleanLogMsg(log.msg)
+                    }));
+                    if (logs1bList.length > 0) {
+                        results.value.push({
+                            appName: app1b.name,
+                            groups: [
+                                {
+                                    groupName: '入参 (ServiceProxy)',
+                                    logs: logs1bList,
+                                    tripType: ''
+                                }
+                            ],
+                            totalLogs: logs1bList.length
+                        });
+                    }
+
+                    // 1.6 flight.searchflights.connectgateway-联运网关站
+                    loadingText.value = '正在查询 联运网关站 日志...';
+                    const app1c = appConfig['flight.searchflights.connectgateway'];
+                    const logs1c = await querySkyNetLogs({
+                        appIds: [app1c.appId],
+                        category: 'ServiceProxy',
+                        contextId: traceid,
+                        beginTime: addMilliseconds(beginTime),
+                        endTime: addMilliseconds(endTime),
+                        tokens: [app1c.token],
+                        pageSize: 500,
+                        operationType: 'next',
+                        lastRowTime: 0,
+                        lastRowData: ''
+                    });
+
+                    const logs1cList = (logs1c.list || []).sort((a, b) => 
+                        new Date(b.logTime) - new Date(a.logTime)
+                    ).map(log => ({
+                        ...log,
+                        contextId: traceid,
+                        msg: cleanLogMsg(log.msg)
+                    }));
+                    if (logs1cList.length > 0) {
+                        results.value.push({
+                            appName: app1c.name,
+                            groups: [
+                                {
+                                    groupName: '入参 (ServiceProxy)',
+                                    logs: logs1cList,
+                                    tripType: ''
+                                }
+                            ],
+                            totalLogs: logs1cList.length
+                        });
+                    }
+
+                    // 2. flight.searchflights.roundtripengine-产品站
+                    loadingText.value = '正在查询 产品站 日志...';
+                    const app2 = appConfig['flight.searchflights.roundtripengine'];
+                    
+                    const app2Result = await queryAndGroupByCategory(app2, traceid, beginTime, endTime, {
+                        'ServiceProxy': {
+                            groupPrefix: '入参',
+                            groupBySubCategory: false,
+                            processMsg: (log) => ({ ...log, msg: cleanLogMsg(log.msg) })
+                        },
+                        'AvAdapter': {
+                            groupPrefix: 'av数据',
+                            groupBySubCategory: true,
+                            processMsg: (log) => {
+                                if (log.subCategory === 'ProcessPbResult') {
+                                    const processed = processAvAdapterMsg(log.msg);
+                                    return { ...log, displayMsg: processed.displayMsg, parsedJson: processed.parsedJson };
+                                }
+                                return { ...log, displayMsg: log.msg, isRawHtml: true };
+                            }
+                        },
+                        'OnewayMinPriceAdapter': {
+                            groupPrefix: '单程最小价入参',
+                            groupBySubCategory: false,
+                            processMsg: (log) => {
+                                const processed = processCompassMsg(log.msg);
+                                return { ...log, displayMsg: processed.displayMsg, parsedJson: processed.parsedJson };
+                            }
+                        },
+                        'OnewayMinPriceBook15': {
+                            groupPrefix: '单程最小价出参',
+                            groupBySubCategory: false,
+                            processMsg: (log) => {
+                                const processed = processMinPriceBook15Msg(log.msg);
+                                return { ...log, displayMsg: processed.displayMsg, parsedJson: processed.parsedJson };
+                            }
+                        }
+                    });
+                    if (app2Result.totalLogs > 0) {
+                        results.value.push({
+                            appName: app2.name,
+                            groups: app2Result.groups,
+                            totalLogs: app2Result.totalLogs
+                        });
+                    }
+
+                    // 2.5 flight.searchflights.connectengine-联运产品站
+                    loadingText.value = '正在查询 联运产品站 日志...';
+                    const app2b = appConfig['flight.searchflights.connectengine'];
+                    
+                    const app2bResult = await queryAndGroupByCategory(app2b, traceid, beginTime, endTime, {
+                        'ServiceProxy': {
+                            groupPrefix: '入参',
+                            groupBySubCategory: false,
+                            processMsg: (log) => ({ ...log, msg: cleanLogMsg(log.msg) })
+                        },
+                        'AvAdapter': {
+                            groupPrefix: 'av数据',
+                            groupBySubCategory: true,
+                            processMsg: (log) => {
+                                if (log.subCategory === 'ProcessPbResult') {
+                                    const processed = processAvAdapterMsg(log.msg);
+                                    return { ...log, displayMsg: processed.displayMsg, parsedJson: processed.parsedJson };
+                                }
+                                return { ...log, displayMsg: log.msg, isRawHtml: true };
+                            }
+                        },
+                        'TransitLineV2Adapter': {
+                            groupPrefix: '联运线路',
+                            groupBySubCategory: true,
+                            processMsg: (log) => {
+                                if (log.subCategory === 'ProcessPbResult') {
+                                    const processed = processAvAdapterMsg(log.msg);
+                                    return { ...log, displayMsg: processed.displayMsg, parsedJson: processed.parsedJson };
+                                }
+                                return { ...log, displayMsg: log.msg, isRawHtml: true };
+                            }
+                        },
+                        'OnewayMinPriceAdapter': {
+                            groupPrefix: '单程最小价入参',
+                            groupBySubCategory: false,
+                            processMsg: (log) => {
+                                const processed = processCompassMsg(log.msg);
+                                return { ...log, displayMsg: processed.displayMsg, parsedJson: processed.parsedJson };
+                            }
+                        },
+                        'OnewayMinPriceBook15': {
+                            groupPrefix: '单程最小价出参',
+                            groupBySubCategory: false,
+                            processMsg: (log) => {
+                                const processed = processMinPriceBook15Msg(log.msg);
+                                return { ...log, displayMsg: processed.displayMsg, parsedJson: processed.parsedJson };
+                            }
+                        }
+                    });
+                    if (app2bResult.totalLogs > 0) {
+                        results.value.push({
+                            appName: app2b.name,
+                            groups: app2bResult.groups,
+                            totalLogs: app2bResult.totalLogs
+                        });
+                    }
+
+                    // 2.6 flight.netcore.searchflights.wechatapi-微信API站
+                    loadingText.value = '正在查询 微信API站 日志...';
+                    const app2c = appConfig['flight.netcore.searchflights.wechatapi'];
+                    
+                    const app2cResult = await queryAndGroupByCategory(app2c, traceid, beginTime, endTime, {
+                        'ServiceProxy': {
+                            groupPrefix: '入参',
+                            groupBySubCategory: false,
+                            processMsg: (log) => ({ ...log, msg: cleanLogMsg(log.msg) })
+                        },
+                        'AvAdapter': {
+                            groupPrefix: 'av数据',
+                            groupBySubCategory: true,
+                            processMsg: (log) => {
+                                if (log.subCategory === 'ProcessPbResult') {
+                                    const processed = processAvAdapterMsg(log.msg);
+                                    return { ...log, displayMsg: processed.displayMsg, parsedJson: processed.parsedJson };
+                                }
+                                return { ...log, displayMsg: log.msg, isRawHtml: true };
+                            }
+                        },
+                        'OnewayMinPriceAdapter': {
+                            groupPrefix: '单程最小价入参',
+                            groupBySubCategory: false,
+                            processMsg: (log) => {
+                                const processed = processCompassMsg(log.msg);
+                                return { ...log, displayMsg: processed.displayMsg, parsedJson: processed.parsedJson };
+                            }
+                        },
+                        'OnewayMinPriceBook15': {
+                            groupPrefix: '单程最小价出参',
+                            groupBySubCategory: false,
+                            processMsg: (log) => {
+                                const processed = processMinPriceBook15Msg(log.msg);
+                                return { ...log, displayMsg: processed.displayMsg, parsedJson: processed.parsedJson };
+                            }
+                        }
+                    });
+                    if (app2cResult.totalLogs > 0) {
+                        results.value.push({
+                            appName: app2c.name,
+                            groups: app2cResult.groups,
+                            totalLogs: app2cResult.totalLogs
+                        });
+                    }
+
+                    // 3. flight.node.flightbffv2
+                    loadingText.value = '正在查询 flightbffv2 日志...';
+                    const app3 = appConfig['flight.node.flightbffv2'];
+                    const logs3 = await querySkyNetLogs({
+                        appIds: [app3.appId],
+                        subCategory: 'RoundSearchCabins',
+                        contextId: traceid,
+                        beginTime: addMilliseconds(beginTime),
+                        endTime: addMilliseconds(endTime),
+                        tokens: [app3.token],
+                        pageSize: 500,
+                        operationType: 'next',
+                        lastRowTime: 0,
+                        lastRowData: ''
+                    });
+
+                    // 立即添加到结果中（渐进式渲染）
+                    const logs3List = (logs3.list || []).sort((a, b) => 
+                        new Date(b.logTime) - new Date(a.logTime)
+                    ).map(log => ({
+                        ...log,
+                        displayMsg: log.msg,
+                        isRawHtml: true
+                    }));
+                    if (logs3List.length > 0) {
+                        results.value.push({
+                            appName: app3.name,
+                            groups: [
+                                {
+                                    groupName: 'RoundSearchCabins',
+                                    logs: logs3List,
+                                    tripType: ''
+                                }
+                            ],
+                            totalLogs: logs3List.length
+                        });
+                    }
+
+                    // 4. flight.netcore.compass
+                    loadingText.value = '正在查询 compass 日志...';
+                    const app4 = appConfig['flight.netcore.compass'];
+                    const logs4 = await querySkyNetLogs({
+                        appIds: [app4.appId],
+                        category: 'FlightSearch',
+                        indexContext: traceid,
+                        beginTime: addMilliseconds(beginTime),
+                        endTime: addMilliseconds(endTime),
+                        tokens: [app4.token],
+                        pageSize: 500,
+                        operationType: 'next',
+                        lastRowTime: 0,
+                        lastRowData: ''
+                    });
+
+                    // 立即添加到结果中（渐进式渲染）
+                    const logs4List = (logs4.list || []).sort((a, b) => 
+                        new Date(b.logTime) - new Date(a.logTime)
+                    ).map(log => {
+                        const processed = processCompassMsg(log.msg);
+                        return {
+                            ...log,
+                            displayMsg: processed.displayMsg,
+                            parsedJson: processed.parsedJson
+                        };
+                    });
+                    if (logs4List.length > 0) {
+                        results.value.push({
+                            appName: app4.name,
+                            groups: [
+                                {
+                                    groupName: 'FlightSearch',
+                                    logs: logs4List,
+                                    tripType: ''
+                                }
+                            ],
+                            totalLogs: logs4List.length
+                        });
+                    }
+
+                    // 5. flight.node.flightquery
+                    loadingText.value = '正在查询 flightquery 日志...';
+                    const app5 = appConfig['flight.node.flightquery'];
+                    const logs5 = await querySkyNetLogs({
+                        appIds: [app5.appId],
+                        indexContext: 'http://search.fly.17usoft.com/wechatcore/roundtrip/',
+                        contextId: traceid,
+                        beginTime: addMilliseconds(beginTime),
+                        endTime: addMilliseconds(endTime),
+                        tokens: [app5.token],
+                        pageSize: 500,
+                        operationType: 'next',
+                        lastRowTime: 0,
+                        lastRowData: ''
+                    });
+
+                    // 立即添加到结果中（渐进式渲染）
+                    const logs5List = (logs5.list || []).sort((a, b) => 
+                        new Date(b.logTime) - new Date(a.logTime)
+                    ).map(log => ({
+                        ...log,
+                        displayMsg: log.msg,
+                        isRawHtml: true
+                    }));
+                    if (logs5List.length > 0) {
+                        results.value.push({
+                            appName: app5.name,
+                            groups: [
+                                {
+                                    groupName: 'flightquery',
+                                    logs: logs5List,
+                                    tripType: ''
+                                }
+                            ],
+                            totalLogs: logs5List.length
+                        });
+                    }
+                };
+
+                // 根据临时单号查询
+                const searchByTempSerialNo = async () => {
+                    const tempSerialNo = searchForm.value.idValue.trim();
+                    const timeRange = searchForm.value.timeRange;
+                    
+                    if (!timeRange || timeRange.length < 2) {
+                        ElementPlus.ElMessage.warning('请选择日志时间范围');
+                        loading.value = false;
+                        return;
+                    }
+                    
+                    const [beginTime, endTime] = timeRange;
+                    
+                    loadingText.value = '正在查询 临时单号 相关日志...';
+                    
+                    const app = appConfig['flight.netcore.compass'];
+                    const result = await querySkyNetLogs({
+                        appIds: [app.appId],
+                        category: 'FlightSearch',
+                        filter1s: [tempSerialNo],
+                        beginTime: addMilliseconds(beginTime),
+                        endTime: addMilliseconds(endTime),
+                        tokens: [app.token],
+                        pageSize: 500,
+                        operationType: 'next',
+                        lastRowTime: 0,
+                        lastRowData: ''
+                    });
+
+                    const logs = (result.list || []).sort((a, b) => 
+                        new Date(b.logTime) - new Date(a.logTime)
+                    ).map(log => {
+                        const processed = processCompassMsg(log.msg);
+                        return {
+                            ...log,
+                            displayMsg: processed.displayMsg,
+                            parsedJson: processed.parsedJson
+                        };
+                    });
+
+                    results.value = logs.length > 0 ? [{
+                        appName: app.name,
+                        groups: [
+                            {
+                                groupName: 'FlightSearch',
+                                logs: logs,
+                                tripType: ''
+                            }
+                        ],
+                        totalLogs: logs.length
+                    }] : [];
+                };
+
+                // 根据订单号查询
+                const searchByOrderNo = async () => {
+                    const orderNo = searchForm.value.idValue.trim();
+                    const timeRange = searchForm.value.timeRange;
+                    
+                    if (!timeRange || timeRange.length < 2) {
+                        ElementPlus.ElMessage.warning('请选择日志时间范围');
+                        loading.value = false;
+                        return;
+                    }
+                    
+                    const [beginTime, endTime] = timeRange;
+                    
+                    loadingText.value = '正在查询 订单号 相关日志...';
+                    
+                    const app = appConfig['flight.netcore.searchflights.buildcache'];
+                    const result = await querySkyNetLogs({
+                        appIds: [app.appId],
+                        category: 'OrderCreatedTopicListener',
+                        indexContext: orderNo,
+                        beginTime: addMilliseconds(beginTime),
+                        endTime: addMilliseconds(endTime),
+                        tokens: [app.token],
+                        pageSize: 500,
+                        operationType: 'next',
+                        lastRowTime: 0,
+                        lastRowData: ''
+                    });
+
+                    const logs = (result.list || []).sort((a, b) => 
+                        new Date(b.logTime) - new Date(a.logTime)
+                    ).map(log => {
+                        // 尝试解析和格式化JSON
+                        const processed = processBuildcacheMsg(log.msg);
+                        return {
+                            ...log,
+                            displayMsg: processed.displayMsg,
+                            parsedJson: processed.parsedJson
+                        };
+                    });
+
+                    results.value = logs.length > 0 ? [{
+                        appName: app.name,
+                        groups: [
+                            {
+                                groupName: 'OrderCreatedTopicListener',
+                                logs: logs,
+                                tripType: ''
+                            }
+                        ],
+                        totalLogs: logs.length
+                    }] : [];
+                };
+
+                // 根据tag查询
+                const searchByTag = async () => {
+                    const tag = searchForm.value.idValue.trim();
+                    
+                    loadingText.value = '正在查询 tag 生成时间...';
+                    
+                    // 查询tag生成时间
+                    const generateTime = await queryTagGenerateTime(tag);
+                    if (!generateTime) {
+                        ElementPlus.ElMessage.error('查询tag生成时间失败');
+                        loading.value = false;
+                        return;
+                    }
+
+                    tagGenerateTime.value = generateTime;
+
+                    // 计算时间范围（前后10分钟）
+                    const generateDateTime = new Date(generateTime.replace(/-/g, '/'));
+                    const beginDateTime = new Date(generateDateTime.getTime() - 10 * 60 * 1000);
+                    const endDateTime = new Date(generateDateTime.getTime() + 10 * 60 * 1000);
+
+                    const beginTime = formatDateTime(beginDateTime);
+                    const endTime = formatDateTime(endDateTime);
+
+                    loadingText.value = '正在查询 tag 相关日志...';
+                    
+                    // 查询日志
+                    const app = appConfig['flight.netcore.compass'];
+                    const result = await querySkyNetLogs({
+                        appIds: [app.appId],
+                        category: 'FlightSearch',
+                        indexContext: tag,
+                        beginTime: addMilliseconds(beginTime),
+                        endTime: addMilliseconds(endTime),
+                        tokens: [app.token],
+                        pageSize: 500,
+                        operationType: 'next',
+                        lastRowTime: 0,
+                        lastRowData: ''
+                    });
+
+                    const logs = (result.list || []).sort((a, b) => 
+                        new Date(b.logTime) - new Date(a.logTime)
+                    ).map(log => {
+                        const processed = processCompassMsg(log.msg);
+                        return {
+                            ...log,
+                            displayMsg: processed.displayMsg,
+                            parsedJson: processed.parsedJson
+                        };
+                    });
+
+                    results.value = logs.length > 0 ? [{
+                        appName: app.name + ' (tag查询)',
+                        groups: [
+                            {
+                                groupName: 'FlightSearch (tag: ' + tag.substring(0, 20) + '...)',
+                                logs: logs,
+                                tripType: ''
+                            }
+                        ],
+                        totalLogs: logs.length
+                    }] : [];
+                };
+
+                // 根据用户信息查询（查询wechatcore的ServiceProxy日志）
+                const searchByUserInfo = async () => {
+                    const userInfo = searchForm.value.idValue.trim();
+                    
+                    const timeRange = searchForm.value.timeRange;
+                    
+                    if (!timeRange || timeRange.length < 2) {
+                        ElementPlus.ElMessage.warning('请选择日志时间范围');
+                        loading.value = false;
+                        return;
+                    }
+                    
+                    const [beginTime, endTime] = timeRange;
+                    
+                    loadingText.value = '正在查询 用户信息 相关日志...';
+                    
+                    // 查询wechatcore的ServiceProxy日志
+                    const app = appConfig['flight.netcore.searchflights.wechatcore'];
+                    const result = await querySkyNetLogs({
+                        appIds: [app.appId],
+                        category: 'ServiceProxy',
+                        indexContext: userInfo,
+                        beginTime: addMilliseconds(beginTime),
+                        endTime: addMilliseconds(endTime),
+                        tokens: [app.token],
+                        pageSize: 500,
+                        operationType: 'next',
+                        lastRowTime: 0,
+                        lastRowData: ''
+                    });
+
+                    const logs = (result.list || []).sort((a, b) => 
+                        new Date(b.logTime) - new Date(a.logTime)
+                    ).map(log => ({
+                        ...log,
+                        contextId: log.contextId || '',  // 保留contextId用于跳转
+                        msg: cleanLogMsg(log.msg)
+                    }));
+
+                    results.value = logs.length > 0 ? [{
+                        appName: app.name + ' (用户信息查询)',
+                        groups: [
+                            {
+                                groupName: 'ServiceProxy (用户信息: ' + userInfo.substring(0, 20) + '...)',
+                                logs: logs,
+                                tripType: ''
+                            }
+                        ],
+                        totalLogs: logs.length
+                    }] : [];
+                };
+
+                // 切换应用站折叠状态
+                const toggleCollapse = (appIndex) => {
+                    // 默认是折叠状态（true），点击后展开（false）
+                    const currentState = collapsedApps.value[appIndex] === undefined ? true : collapsedApps.value[appIndex];
+                    collapsedApps.value[appIndex] = !currentState;
+                };
+
+                // 切换日志折叠状态
+                const toggleLogCollapse = (appIndex, groupIndex, logIndex) => {
+                    const key = `${appIndex}-${groupIndex}-${logIndex}`;
+                    // 默认折叠（true），点击后展开（false）
+                    const currentState = collapsedLogs.value[key] === undefined ? true : collapsedLogs.value[key];
+                    collapsedLogs.value[key] = !currentState;
+                };
+
+                // 判断日志是否折叠（默认折叠）
+                const isLogCollapsed = (appIndex, groupIndex, logIndex) => {
+                    const key = `${appIndex}-${groupIndex}-${logIndex}`;
+                    return collapsedLogs.value[key] !== false;
+                };
+
+                // 重置表单
+                const resetForm = () => {
+                    searchForm.value.idValue = '';
+                    initTimeRange();
+                    results.value = [];
+                    searched.value = false;
+                    tagGenerateTime.value = '';
+                    collapsedApps.value = {};
+                    collapsedLogs.value = {};
+                    selectedTimeRange.value = ''; // 重置选中的时间范围
+                    logFilterKeywords.value = ''; // 重置日志搜索
+                    
+                    // 清空URL参数（包括时间范围）
+                    const url = new URL(window.location.href);
+                    url.searchParams.delete('traceid');
+                    url.searchParams.delete('tempSerialNo');
+                    url.searchParams.delete('orderNo');
+                    url.searchParams.delete('tag');
+                    url.searchParams.delete('beginTime');
+                    url.searchParams.delete('endTime');
+                    window.history.pushState({}, '', url.toString());
+                };
+
+                // 复制文本
+                const copyText = (text) => {
+                    if (!text || !text.trim()) return;
+                    navigator.clipboard.writeText(text.trim()).then(() => {
+                        ElementPlus.ElMessage.success('已复制: ' + text.trim());
+                    }).catch(() => {
+                        const textarea = document.createElement('textarea');
+                        textarea.value = text.trim();
+                        document.body.appendChild(textarea);
+                        textarea.select();
+                        document.execCommand('copy');
+                        document.body.removeChild(textarea);
+                        ElementPlus.ElMessage.success('已复制: ' + text.trim());
+                    });
+                };
+
+                // 复制ID值
+                const copyIdValue = () => {
+                    const val = searchForm.value.idValue;
+                    if (!val || !val.trim()) {
+                        ElementPlus.ElMessage.warning('ID为空，无法复制');
+                        return;
+                    }
+                    navigator.clipboard.writeText(val.trim()).then(() => {
+                        ElementPlus.ElMessage.success('已复制: ' + val.trim());
+                    }).catch(() => {
+                        const textarea = document.createElement('textarea');
+                        textarea.value = val.trim();
+                        document.body.appendChild(textarea);
+                        textarea.select();
+                        document.execCommand('copy');
+                        document.body.removeChild(textarea);
+                        ElementPlus.ElMessage.success('已复制: ' + val.trim());
+                    });
+                };
+
+                // 导出结果
+                const exportResults = () => {
+                    const dataStr = JSON.stringify(results.value, null, 2);
+                    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+                    const url = URL.createObjectURL(dataBlob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = `log-query-result-${new Date().getTime()}.json`;
+                    link.click();
+                    URL.revokeObjectURL(url);
+                };
+
+                // 从URL参数初始化
+                const initFromUrlParams = () => {
+                    const urlParams = new URLSearchParams(window.location.search);
+                    let hasIdParam = false;
+                    
+                    // 读取ID参数
+                    if (urlParams.has('traceid')) {
+                        searchForm.value.idType = 'traceid';
+                        searchForm.value.idValue = urlParams.get('traceid');
+                        hasIdParam = true;
+                    } else if (urlParams.has('tempSerialNo')) {
+                        searchForm.value.idType = 'tempSerialNo';
+                        searchForm.value.idValue = urlParams.get('tempSerialNo');
+                        hasIdParam = true;
+                    } else if (urlParams.has('orderNo')) {
+                        searchForm.value.idType = 'orderNo';
+                        searchForm.value.idValue = urlParams.get('orderNo');
+                        hasIdParam = true;
+                    } else if (urlParams.has('tag')) {
+                        searchForm.value.idType = 'tag';
+                        searchForm.value.idValue = urlParams.get('tag');
+                        hasIdParam = true;
+                    }
+                    
+                    // 读取时间范围参数
+                    if (urlParams.has('beginTime') && urlParams.has('endTime')) {
+                        searchForm.value.timeRange = [
+                            urlParams.get('beginTime'),
+                            urlParams.get('endTime')
+                        ];
+                    }
+                    
+                    // 如果是通过跳转链接进入的（URL中有ID参数），自动触发查询
+                    if (hasIdParam && searchForm.value.idValue && searchForm.value.idValue.trim()) {
+                        handleSearch();
+                    }
+                };
+
+                // 组件挂载时初始化
+                onMounted(() => {
+                    initTimeRange();
+                    initFromUrlParams();
+                });
+
+                return {
+                    searchForm,
+                    loading,
+                    loadingText,
+                    results,
+                    searched,
+                    tagGenerateTime,
+                    collapsedApps,
+                    collapsedLogs,
+                    selectedTimeRange,
+                    logFilterKeywords,
+                    globalFilterStats,
+                    filteredResults,
+                    getIdPlaceholder,
+                    handleSearch,
+                    resetForm,
+                    copyIdValue,
+                    copyText,
+                    exportResults,
+                    toggleCollapse,
+                    toggleLogCollapse,
+                    isLogCollapsed,
+                    isJson,
+                    formatJson,
+                    getDisplayMsg,
+                    filterLogs,
+                    highlightText,
+                    clearLogFilter,
+                    extractTraceId,
+                    extractTempSerialNo,
+                    shouldShowTempSerialNo,
+                    jumpToTraceId,
+                    jumpToTempSerialNo,
+                    getSkyNetUrl,
+                    setQuickTimeRange,
+                    setTodayRange,
+                    setYesterdayRange
+                };
+            }
+        }).use(ElementPlus).mount('#app');
+    </script>
+</body>
+</html>
